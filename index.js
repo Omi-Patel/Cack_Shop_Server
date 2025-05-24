@@ -12,6 +12,7 @@ connectDB();
 
 // Route files
 const auth = require("./src/routes/authRoutes");
+const products = require("./src/routes/productRoutes");
 
 const app = express();
 
@@ -23,6 +24,7 @@ app.use(cookieParser());
 
 // Mount routers
 app.use("/api/v1/auth", auth);
+app.use("/api/v1/products", products);
 
 // Error handling middleware
 app.use((err, req, res, next) => {
