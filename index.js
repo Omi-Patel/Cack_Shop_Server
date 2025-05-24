@@ -1,0 +1,60 @@
+const express = require("express");
+const dotenv = require("dotenv");
+const cookieParser = require("cookie-parser");
+const connectDB = require("./src/config/db");
+
+
+// Load env vars
+dotenv.config({ path: "./.env" });
+
+// Connect to database
+connectDB();
+
+// Route files
+const auth = require("./src/routes/authRoutes");
+
+const app = express();
+
+// Body parser
+app.use(express.json());
+
+// Cookie parser
+app.use(cookieParser());
+
+// Mount routers
+app.use("/api/v1/auth", auth);
+
+// Error handling middleware
+app.use((err, req, res, next) => {
+
+  // If the error is an instance of our custom ErrorResponse
+  if (err.send) {
+    return err.send(res);
+  }
+
+  // Default error response
+  res.status(err.statusCode || 500).json({
+    success: false,
+    error: {
+      message: err.message || 'Internal Server Error',
+      statusCode: err.statusCode || 500,
+      type: err.type || 'ServerError',
+      timestamp: new Date().toISOString(),
+      ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
+    }
+  });
+});
+
+const PORT = process.env.PORT || 5000;
+
+const server = app.listen(
+  PORT,
+  console.log(`Server running on port ${PORT}`)
+);
+
+// Handle unhandled promise rejections
+process.on("unhandledRejection", (err, promise) => {
+  console.log(`Error: ${err.message}`);
+  // Close server & exit process
+  server.close(() => process.exit(1));
+});
