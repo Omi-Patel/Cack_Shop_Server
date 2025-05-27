@@ -1,14 +1,15 @@
-const Product = require('../models/Product');
-const ErrorResponse = require('../utils/errorResponse');
-const { streamUpload } = require('../utils/fileUpload');
+const Product = require("../models/Product");
+const ErrorResponse = require("../utils/errorResponse");
+const { streamUpload } = require("../utils/fileUpload");
 
 // @desc    Create new product
 // @route   POST /api/v1/products
 // @access  Private
 exports.createProduct = async (req, res, next) => {
   try {
-    const { name, description, price, category, ingredients, allergens } = req.body;
-    
+    const { name, description, price, category, ingredients, allergens } =
+      req.body;
+
     // Handle image uploads
     const imageUrls = [];
     if (req.files && req.files.length > 0) {
@@ -25,12 +26,12 @@ exports.createProduct = async (req, res, next) => {
       category,
       images: imageUrls,
       ingredients: ingredients ? JSON.parse(ingredients) : [],
-      allergens: allergens ? JSON.parse(allergens) : []
+      allergens: allergens ? JSON.parse(allergens) : [],
     });
 
     res.status(201).json({
       success: true,
-      data: product
+      data: product,
     });
   } catch (error) {
     next(error);
@@ -43,11 +44,11 @@ exports.createProduct = async (req, res, next) => {
 exports.getProducts = async (req, res, next) => {
   try {
     const products = await Product.find();
-    
+
     res.status(200).json({
       success: true,
       count: products.length,
-      data: products
+      data: products,
     });
   } catch (error) {
     next(error);
@@ -62,12 +63,14 @@ exports.getProduct = async (req, res, next) => {
     const product = await Product.findById(req.params.id);
 
     if (!product) {
-      return next(new ErrorResponse(`Product not found with id of ${req.params.id}`, 404));
+      return next(
+        new ErrorResponse(`Product not found with id of ${req.params.id}`, 404)
+      );
     }
 
     res.status(200).json({
       success: true,
-      data: product
+      data: product,
     });
   } catch (error) {
     next(error);
@@ -82,17 +85,33 @@ exports.updateProduct = async (req, res, next) => {
     let product = await Product.findById(req.params.id);
 
     if (!product) {
-      return next(new ErrorResponse(`Product not found with id of ${req.params.id}`, 404));
+      return next(
+        new ErrorResponse(`Product not found with id of ${req.params.id}`, 404)
+      );
     }
 
-    // Handle image uploads if new images are provided
+    // Handle image updates
+    if (req.body.images) {
+      // If images are provided as a string, parse it
+      const imagesToKeep =
+        typeof req.body.images === "string"
+          ? JSON.parse(req.body.images)
+          : req.body.images;
+
+      // Filter out any images that aren't in the imagesToKeep array
+      req.body.images = product.images.filter((img) =>
+        imagesToKeep.includes(img)
+      );
+    }
+
+    // Handle new image uploads if provided
     if (req.files && req.files.length > 0) {
       const imageUrls = [];
       for (const file of req.files) {
         const result = await streamUpload(file.buffer);
         imageUrls.push(result.secure_url);
       }
-      req.body.images = imageUrls;
+      req.body.images = [...(req.body.images || product.images), ...imageUrls];
     }
 
     // Parse arrays if they exist
@@ -105,12 +124,12 @@ exports.updateProduct = async (req, res, next) => {
 
     product = await Product.findByIdAndUpdate(req.params.id, req.body, {
       new: true,
-      runValidators: true
+      runValidators: true,
     });
 
     res.status(200).json({
       success: true,
-      data: product
+      data: product,
     });
   } catch (error) {
     next(error);
@@ -122,19 +141,13 @@ exports.updateProduct = async (req, res, next) => {
 // @access  Private
 exports.deleteProduct = async (req, res, next) => {
   try {
-    const product = await Product.findById(req.params.id);
-
-    if (!product) {
-      return next(new ErrorResponse(`Product not found with id of ${req.params.id}`, 404));
-    }
-
-    await product.remove();
+    const product = await Product.findByIdAndDelete(req.params.id);
 
     res.status(200).json({
       success: true,
-      data: {}
+      data: { product },
     });
   } catch (error) {
     next(error);
   }
-}; 
+};
