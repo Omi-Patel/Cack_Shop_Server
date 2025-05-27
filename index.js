@@ -29,8 +29,8 @@ app.use(
 );
 
 // Mount routers
-app.use("/", (req, res) => {
-  res.json("Welcome to the Cake Shop API");
+app.get("/", (req, res) => {
+  res.send("Welcome to the Cake Shop API");
 });
 app.use("/api/v1/auth", auth);
 app.use("/api/v1/products", products);
